@@ -1,15 +1,26 @@
 #include "db.h"
 
-bool cmp_record(record a, record b){
-    if( a.Origin.compare(b.Origin) == 0){
-        return a.Dest.compare(b.Dest);
+bool cmp_record(record a, record b){ // a <= b
+    int first_compare = a.Origin.compare(b.Origin);
+    if( first_compare == 0){ // equal
+        return a.Dest.compare(b.Dest) < 0 ? true : false;
     }else{
-        return a.Origin.compare(b.Origin);
+        return first_compare < 0 ? true : false;
     }
 }
 
+/*bool operator<(const record &a, const record & b){
+    int first_compare = a.Origin.compare(b.Origin);
+    if( first_compare == 0){ // equal
+        return a.Dest.compare(b.Dest) < 0 ? true : false;
+    }else{
+        return first_compare < 0 ? true : false;
+    }
+}*/
+
 void db::init(){
 	//Do your db initialization.
+    this->indexed = false;
 }
 
 void db::setTempFileDir(string dir){
@@ -67,6 +78,7 @@ void db::createIndex(){
 
     //sort records_ with (Origin, Dest)
     sort(this->records_.begin(), this->records_.end(), cmp_record);
+    this->indexed = true;
 
     return;
 }
@@ -75,9 +87,43 @@ double db::query(string origin, string dest){
 	//Do the query and return the average ArrDelay of flights from origin to dest.
 	//This method will be called multiple times.
 
-	return 0; //Remember to return your result.
+    double total_arrdelay = 0.0;
+    int number_record = 0;
+
+    record target;
+    target.Origin = origin;
+    target.Dest = dest;
+
+    //binary search using lower_bound for indexed data
+    if(this->indexed){
+        vector<record>::iterator it_first = lower_bound(this->records_.begin(), this->records_.end(), target, cmp_record);
+        for(vector<record>::iterator it = it_first; it!=this->records_.end() ; ++it){
+            record &this_record = (*it);
+            if( this_record.Origin != origin || this_record.Dest != dest )
+                break;
+            total_arrdelay += (double)this_record.ArrDelay;
+            number_record++;
+            //cout << this_record.Origin << "\t" << this_record.Dest << "\t" << this_record.ArrDelay <<endl;
+        }
+    }else{
+        //linear search for unindexed data
+        for(int i=0;i<this->records_.size();++i){
+            if( this->records_[i].Origin == target.Origin &&
+                this->records_[i].Dest == target.Dest){
+                total_arrdelay += (double)this->records_[i].ArrDelay;
+                number_record++;
+            }
+        }
+    }
+
+    //cout << total_arrdelay << "\t" << number_record << "\t" << total_arrdelay / (double)number_record <<endl;
+
+	return total_arrdelay / (double)number_record; //Remember to return your result.
 }
 
 void db::cleanup(){
 	//Release memory, close files and anything you should do to clean up your db class.
+    this->records_.clear();
+
+    return;
 }

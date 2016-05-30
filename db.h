@@ -17,12 +17,14 @@ struct record{
     string Dest;
 };
 
+//bool operator<(const record &a, const record & b);
 bool cmp_record(record a, record b);
 
 class db{
 
     vector<record> records_;
     string address_tmp_dir_;
+    bool indexed;
 
 public:
     void init();                                     //Do your db initialization.
