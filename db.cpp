@@ -1,5 +1,13 @@
 #include "db.h"
 
+bool cmp_record(record a, record b){
+    if( a.Origin.compare(b.Origin) == 0){
+        return a.Dest.compare(b.Dest);
+    }else{
+        return a.Origin.compare(b.Origin);
+    }
+}
+
 void db::init(){
 	//Do your db initialization.
 }
@@ -58,7 +66,7 @@ void db::createIndex(){
 	//Create index.
 
     //sort records_ with (Origin, Dest)
-    //sort(this->records_.begin(), this->records_.end(), my_compare);
+    sort(this->records_.begin(), this->records_.end(), cmp_record);
 
     return;
 }

@@ -5,7 +5,7 @@
 #include <dirent.h>
 #include <iostream>
 #include <fstream>
-#include <cstring>
+//#include <cstring>
 #include <vector>
 #include <algorithm>
 
@@ -17,14 +17,7 @@ struct record{
     string Dest;
 };
 
-/*bool sdffds(int a, int b){
-    if( a.Origin.compare(b.Origin) == 0){
-        return (bool)a.Dest.compare(b.Dest);
-    }else{
-        return (bool)a.Origin.compare(b.Origin);
-    }
-    return a == b;
-}*/
+bool cmp_record(record a, record b);
 
 class db{
 
