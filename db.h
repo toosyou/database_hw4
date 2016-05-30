@@ -1,21 +1,34 @@
+#ifndef DB_H
+#define DB_H
+
 #include <string>
 #include <dirent.h>
 #include <iostream>
 #include <fstream>
 #include <cstring>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
-struct table{
+struct record{
     int ArrDelay;
     string Origin;
     string Dest;
 };
 
+/*bool sdffds(int a, int b){
+    if( a.Origin.compare(b.Origin) == 0){
+        return (bool)a.Dest.compare(b.Dest);
+    }else{
+        return (bool)a.Origin.compare(b.Origin);
+    }
+    return a == b;
+}*/
+
 class db{
 
-    vector<table> tables_;
+    vector<record> records_;
     string address_tmp_dir_;
 
 public:
@@ -26,3 +39,5 @@ public:
     double query(string origin, string dest);          //Do the query and return the average ArrDelay of flights from origin to dest.
     void cleanup();                                  //Release memory, close files and anything you should do to clean up your db class.
 };
+
+#endif

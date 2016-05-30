@@ -25,7 +25,7 @@ void db::import(string csvDir){
             getline(in_csv, buffer);
             //load the data
             while( getline(in_csv, buffer) ){
-                table tmp;
+                record tmp;
 
                 size_t find_pos = -1;
                 for(int i=0;i<14;++i)
@@ -44,7 +44,7 @@ void db::import(string csvDir){
                 find_pos = buffer.find(',', find_pos+1);
                 tmp.Dest = buffer.substr(find_pos+1, buffer.find(',', find_pos+1)-find_pos-1);
 
-                this->tables_.push_back(tmp);
+                this->records_.push_back(tmp);
             }
             in_csv.close();
         }
@@ -56,11 +56,17 @@ void db::import(string csvDir){
 
 void db::createIndex(){
 	//Create index.
+
+    //sort records_ with (Origin, Dest)
+    //sort(this->records_.begin(), this->records_.end(), my_compare);
+
+    return;
 }
 
 double db::query(string origin, string dest){
 	//Do the query and return the average ArrDelay of flights from origin to dest.
 	//This method will be called multiple times.
+
 	return 0; //Remember to return your result.
 }
 
