@@ -12,12 +12,16 @@ bool is_number(const string& input){
 }
 
 bool cmp_record(record a, record b){ // a <= b
-    int first_compare = a.Origin.compare(b.Origin);
+    int first_compare = strcmp(a.Origin, b.Origin);
     if( first_compare == 0){ // equal
-        return a.Dest.compare(b.Dest) < 0 ? true : false;
+        return strcmp(a.Dest, b.Dest) < 0 ? true : false;
     }else{
         return first_compare < 0 ? true : false;
     }
+}
+
+bool cmp_charstring(const char *a, const char *b){
+    return strcmp(a, b) < 0;
 }
 
 void db::init(){
@@ -31,8 +35,17 @@ void db::init(){
 void db::setTempFileDir(string dir){
 	//All the files that created by your program should be located under this directory.
     this->address_tmp_dir_ = dir;
+    this->address_db_ = this->address_tmp_dir_ + string("/") + this->address_db_;
     mkdir(this->address_tmp_dir_.c_str(), 755);
 
+    //remove old database
+    char original_directory[100] = {0};
+    getcwd(original_directory, 100);
+    chdir(dir.c_str());
+
+    remove(address_db_.c_str());
+    
+    chdir(original_directory);
     return;
 }
 
@@ -42,7 +55,7 @@ void db::import(string address_csv){
     cerr.flush();
 
     fstream in_csv(address_csv.c_str());
-    fstream out_db( (this->address_tmp_dir_ + string("/") + this->address_db_).c_str(),
+    fstream out_db( this->address_db_.c_str(),
                         fstream::out | fstream::binary | fstream::app);
 
     string buffer;
@@ -61,6 +74,9 @@ void db::import(string address_csv){
     out_db.close();
     in_csv.close();
 
+    this->index_.clear();
+    this->indexed_ = false;
+
     cerr << "\tdone!" <<endl;
     return;
 }
@@ -68,8 +84,28 @@ void db::import(string address_csv){
 void db::createIndex(){
 	//Create index.
 
-    //sort records_ with (Origin, Dest)
-    sort(this->records_.begin(), this->records_.end(), cmp_record);
+    if(this->indexed_ == true)
+        return;
+    this->index_.clear();
+
+    fstream in_db( this->address_db_.c_str(), fstream::in | fstream::binary);
+
+    int position = 0;
+    char buffer[SIZE_RECORD+1];
+    while( in_db.read(buffer, SIZE_RECORD) ){
+        record tmp;
+        char origin_dest[SIZE_ORIGIN+SIZE_DEST+1];
+
+        tmp.decode_from_db(buffer);
+        memcpy(origin_dest, tmp.Origin, SIZE_ORIGIN);
+        memcpy(origin_dest+SIZE_ORIGIN, tmp.Dest, SIZE_DEST);
+        origin_dest[SIZE_ORIGIN+SIZE_DEST] = '\0';
+        this->index_[string(origin_dest)].push_back(position);
+
+        position += SIZE_RECORD;
+    }
+
+    in_db.close();
     this->indexed_ = true;
 
     return;
@@ -81,41 +117,46 @@ double db::query(string origin, string dest){
 
     double total_arrdelay = 0.0;
     int number_record = 0;
+    char buffer[SIZE_RECORD+1];
+    record tmp;
 
-    record target;
-    target.Origin = origin;
-    target.Dest = dest;
+    fstream in_db(this->address_db_, fstream::in | fstream::binary);
 
     //binary search using lower_bound for indexed_ data
     if(this->indexed_){
-        vector<record>::iterator it_first = lower_bound(this->records_.begin(), this->records_.end(), target, cmp_record);
-        for(vector<record>::iterator it = it_first; it!=this->records_.end() ; ++it){
-            record &this_record = (*it);
-            if( this_record.Origin != origin || this_record.Dest != dest )
-                break;
-            total_arrdelay += (double)this_record.ArrDelay;
-            number_record++;
-            //cout << this_record.Origin << "\t" << this_record.Dest << "\t" << this_record.ArrDelay <<endl;
+        char target[SIZE_ORIGIN + SIZE_DEST + 1];
+
+        memcpy(target, origin.c_str(), SIZE_ORIGIN);
+        memcpy(target+SIZE_ORIGIN, dest.c_str(), SIZE_DEST);
+        target[SIZE_ORIGIN + SIZE_DEST] = '\0';
+        vector<int> &position = this->index_[string(target)];
+
+        for(int i=0;i<position.size();++i){
+            in_db.seekp(ios_base::beg + position[i]);
+            in_db.read(buffer, SIZE_RECORD);
+            tmp.decode_from_db_only_arrdelay(buffer);
+            total_arrdelay += tmp.ArrDelay;
         }
+        number_record += position.size();
+
     }else{
-        //linear search for unindexed_ data
-        for(int i=0;i<this->records_.size();++i){
-            if( this->records_[i].Origin == target.Origin &&
-                this->records_[i].Dest == target.Dest){
-                total_arrdelay += (double)this->records_[i].ArrDelay;
+        while( in_db.read(buffer, SIZE_RECORD) ){
+            tmp.decode_from_db(buffer);
+            if(strcmp(origin.c_str(), tmp.Origin) == 0 &&
+                strcmp(dest.c_str(), tmp.Dest) == 0){
+                total_arrdelay += tmp.ArrDelay;
                 number_record++;
             }
         }
     }
 
-    //cout << total_arrdelay << "\t" << number_record << "\t" << total_arrdelay / (double)number_record <<endl;
-
+    in_db.close();
 	return total_arrdelay / (double)number_record; //Remember to return your result.
 }
 
 void db::cleanup(){
 	//Release memory, close files and anything you should do to clean up your db class.
-    this->records_.clear();
+    this->index_.clear();
 
     return;
 }

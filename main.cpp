@@ -19,11 +19,6 @@ int main(int argc, char* argv[]){
     mydb.import("data/2007.csv");
     mydb.import("data/2008.csv");
 
-    tImport = clock() - tImport;
-    cout << ((double)tImport)/CLOCKS_PER_SEC <<endl;
-
-    return 0;
-
     //query without indexing
     clock_t tQueryWithoutIndex = clock();
     double result1_noindex = mydb.query("IAH", "JFK");
