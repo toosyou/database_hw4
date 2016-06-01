@@ -1,5 +1,16 @@
 #include "db.h"
 
+bool is_number(const string& input){
+    if(input.size() == 0)
+        return false;
+
+    for(int i=0;i<input.size();++i){
+        if( isdigit(input[i]) == false )
+            return false;
+    }
+    return true;
+}
+
 bool cmp_record(record a, record b){ // a <= b
     int first_compare = a.Origin.compare(b.Origin);
     if( first_compare == 0){ // equal
@@ -9,67 +20,48 @@ bool cmp_record(record a, record b){ // a <= b
     }
 }
 
-/*bool operator<(const record &a, const record & b){
-    int first_compare = a.Origin.compare(b.Origin);
-    if( first_compare == 0){ // equal
-        return a.Dest.compare(b.Dest) < 0 ? true : false;
-    }else{
-        return first_compare < 0 ? true : false;
-    }
-}*/
-
 void db::init(){
 	//Do your db initialization.
-    this->indexed = false;
+    this->indexed_ = false;
+    this->address_db_ = string(ADDRESS_DB);
+
+    return;
 }
 
 void db::setTempFileDir(string dir){
 	//All the files that created by your program should be located under this directory.
     this->address_tmp_dir_ = dir;
+    mkdir(this->address_tmp_dir_.c_str(), 755);
+
+    return;
 }
 
-void db::import(string csvDir){
-	//Import csv files under this directory.
-    DIR *dir = opendir(csvDir.c_str());
-    dirent *ent;
-    while( (ent = readdir(dir)) != NULL ){
-        //cout << ent->d_name <<endl;
-        if(ent->d_name[0] != '.' ){ // todo : check .csv
-            fstream in_csv(csvDir + string("/") + string(ent->d_name), fstream::in);
-            if(in_csv.is_open() == false)
-                exit(-1);
+void db::import(string address_csv){
 
-            string buffer;
-            //first line
-            getline(in_csv, buffer);
-            //load the data
-            while( getline(in_csv, buffer) ){
-                record tmp;
+    cerr << "importing " << address_csv << " ..." ;
+    cerr.flush();
 
-                size_t find_pos = -1;
-                for(int i=0;i<14;++i)
-                    find_pos = buffer.find(',', find_pos+1);
+    fstream in_csv(address_csv.c_str());
+    fstream out_db( (this->address_tmp_dir_ + string("/") + this->address_db_).c_str(),
+                        fstream::out | fstream::binary | fstream::app);
 
-                //15 : ArrDelay
-                string str_arrdelay = buffer.substr(find_pos+1, buffer.find(',', find_pos+1)-find_pos-1);
-                tmp.ArrDelay = atoi(str_arrdelay.c_str());
+    string buffer;
+    //first line
+    getline(in_csv, buffer);
+    //real data
+    while( getline(in_csv, buffer) ){
+        record tmp;
 
-                //17 : Origin
-                find_pos = buffer.find(',', find_pos+1);
-                find_pos = buffer.find(',', find_pos+1);
-                tmp.Origin = buffer.substr(find_pos+1, buffer.find(',', find_pos+1)-find_pos-1);
-
-                //18 : Dest
-                find_pos = buffer.find(',', find_pos+1);
-                tmp.Dest = buffer.substr(find_pos+1, buffer.find(',', find_pos+1)-find_pos-1);
-
-                this->records_.push_back(tmp);
-            }
-            in_csv.close();
-        }
+        //read from buffer
+        if( tmp.parse_from_buffer(buffer) == -1)
+            continue;
+        //to db
+        tmp.encode_to_db_app( out_db );
     }
-    closedir(dir);
+    out_db.close();
+    in_csv.close();
 
+    cerr << "\tdone!" <<endl;
     return;
 }
 
@@ -78,7 +70,7 @@ void db::createIndex(){
 
     //sort records_ with (Origin, Dest)
     sort(this->records_.begin(), this->records_.end(), cmp_record);
-    this->indexed = true;
+    this->indexed_ = true;
 
     return;
 }
@@ -94,8 +86,8 @@ double db::query(string origin, string dest){
     target.Origin = origin;
     target.Dest = dest;
 
-    //binary search using lower_bound for indexed data
-    if(this->indexed){
+    //binary search using lower_bound for indexed_ data
+    if(this->indexed_){
         vector<record>::iterator it_first = lower_bound(this->records_.begin(), this->records_.end(), target, cmp_record);
         for(vector<record>::iterator it = it_first; it!=this->records_.end() ; ++it){
             record &this_record = (*it);
@@ -106,7 +98,7 @@ double db::query(string origin, string dest){
             //cout << this_record.Origin << "\t" << this_record.Dest << "\t" << this_record.ArrDelay <<endl;
         }
     }else{
-        //linear search for unindexed data
+        //linear search for unindexed_ data
         for(int i=0;i<this->records_.size();++i){
             if( this->records_[i].Origin == target.Origin &&
                 this->records_[i].Dest == target.Dest){

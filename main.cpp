@@ -15,7 +15,14 @@ int main(int argc, char* argv[]){
 
     clock_t tImport = clock();
 	//Import data
-	mydb.import("data");
+	mydb.import("data/2006.csv");
+    mydb.import("data/2007.csv");
+    mydb.import("data/2008.csv");
+
+    tImport = clock() - tImport;
+    cout << ((double)tImport)/CLOCKS_PER_SEC <<endl;
+
+    return 0;
 
     //query without indexing
     clock_t tQueryWithoutIndex = clock();
