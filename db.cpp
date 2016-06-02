@@ -4,7 +4,7 @@ bool is_number(const string& input){
     if(input.size() == 0)
         return false;
 
-    for(int i=0;i<input.size();++i){
+    for(int i=1;i<input.size();++i){
         if( isdigit(input[i]) == false )
             return false;
     }
@@ -39,13 +39,8 @@ void db::setTempFileDir(string dir){
     mkdir(this->address_tmp_dir_.c_str(), 755);
 
     //remove old database
-    char original_directory[100] = {0};
-    getcwd(original_directory, 100);
-    chdir(dir.c_str());
-
     remove(address_db_.c_str());
     
-    chdir(original_directory);
     return;
 }
 
@@ -135,7 +130,7 @@ double db::query(string origin, string dest){
             in_db.seekp(ios_base::beg + position[i]);
             in_db.read(buffer, SIZE_RECORD);
             tmp.decode_from_db_only_arrdelay(buffer);
-            total_arrdelay += tmp.ArrDelay;
+            total_arrdelay += (double)tmp.ArrDelay;
         }
         number_record += position.size();
 
@@ -144,7 +139,7 @@ double db::query(string origin, string dest){
             tmp.decode_from_db(buffer);
             if(strcmp(origin.c_str(), tmp.Origin) == 0 &&
                 strcmp(dest.c_str(), tmp.Dest) == 0){
-                total_arrdelay += tmp.ArrDelay;
+                total_arrdelay += (double)tmp.ArrDelay;
                 number_record++;
             }
         }
