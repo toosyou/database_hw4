@@ -70,7 +70,8 @@ void db::import(string address_csv){
     fgets(buffer, 2000, file_csv);
     //real data
     while( fgets(buffer, 2000, file_csv) != NULL ){
-        tmp_record.parse_from_buffer(buffer);
+        if(tmp_record.parse_from_buffer(buffer) == -1)
+            continue;
         tmp_record.encode_to_db_app(file_db);
     }
 
