@@ -11,6 +11,17 @@ bool is_number(const string& input){
     return true;
 }
 
+bool is_number(const char* input){
+    int length_input = strlen(input);
+    if( length_input == 0)
+        return false;
+    for(int i=1;i<length_input;++i){
+        if( isdigit(input[i]) == false)
+            return false;
+    }
+    return true;
+}
+
 bool cmp_record(record a, record b){ // a <= b
     int first_compare = strcmp(a.Origin, b.Origin);
     if( first_compare == 0){ // equal
@@ -40,7 +51,7 @@ void db::setTempFileDir(string dir){
 
     //remove old database
     remove(address_db_.c_str());
-    
+
     return;
 }
 
@@ -49,25 +60,22 @@ void db::import(string address_csv){
     cerr << "importing " << address_csv << " ..." ;
     cerr.flush();
 
-    fstream in_csv(address_csv.c_str());
-    fstream out_db( this->address_db_.c_str(),
-                        fstream::out | fstream::binary | fstream::app);
+    FILE *file_csv = fopen( address_csv.c_str(), "r" );
+    FILE *file_db = fopen( this->address_db_.c_str(), "ab" );
 
-    string buffer;
+    char buffer[1000] = {0};
+    record tmp_record;
+
     //first line
-    getline(in_csv, buffer);
+    fgets(buffer, 1000, file_csv);
     //real data
-    while( getline(in_csv, buffer) ){
-        record tmp;
-
-        //read from buffer
-        if( tmp.parse_from_buffer(buffer) == -1)
-            continue;
-        //to db
-        tmp.encode_to_db_app( out_db );
+    while( fgets(buffer, 1000, file_csv) != NULL ){
+        tmp_record.parse_from_buffer(buffer);
+        tmp_record.encode_to_db_app(file_db);
     }
-    out_db.close();
-    in_csv.close();
+
+    fclose(file_csv);
+    fclose(file_db);
 
     this->index_.clear();
     this->indexed_ = false;
@@ -109,7 +117,6 @@ void db::createIndex(){
 double db::query(string origin, string dest){
 	//Do the query and return the average ArrDelay of flights from origin to dest.
 	//This method will be called multiple times.
-
     double total_arrdelay = 0.0;
     int number_record = 0;
     char buffer[SIZE_RECORD+1];
