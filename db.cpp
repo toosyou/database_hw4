@@ -91,68 +91,80 @@ void db::createIndex(){
         return;
     this->index_.clear();
 
-    fstream in_db( this->address_db_.c_str(), fstream::in | fstream::binary);
-
     int position = 0;
     char buffer[SIZE_RECORD+1];
-    while( in_db.read(buffer, SIZE_RECORD) ){
-        record tmp;
-        char origin_dest[SIZE_ORIGIN+SIZE_DEST+1];
+    size_t size_char = sizeof(char);
+    record tmp_record;
+    map_index tmp_index;
+    FILE *file_db = fopen( this->address_db_.c_str(), "rb");
 
-        tmp.decode_from_db(buffer);
-        memcpy(origin_dest, tmp.Origin, SIZE_ORIGIN);
-        memcpy(origin_dest+SIZE_ORIGIN, tmp.Dest, SIZE_DEST);
-        origin_dest[SIZE_ORIGIN+SIZE_DEST] = '\0';
-        this->index_[string(origin_dest)].push_back(position);
-
+    while( fread(buffer, size_char, SIZE_RECORD, file_db) != 0 ){
+        tmp_record.decode_from_db(buffer);
+        tmp_index.origin_dest[0] = tmp_record.Origin[0];
+        tmp_index.origin_dest[1] = tmp_record.Origin[1];
+        tmp_index.origin_dest[2] = tmp_record.Origin[2];
+        tmp_index.origin_dest[3] = tmp_record.Dest[0];
+        tmp_index.origin_dest[4] = tmp_record.Dest[1];
+        tmp_index.origin_dest[5] = tmp_record.Dest[2];
+        tmp_index.origin_dest[6] = '\0';
+        this->index_[tmp_index].push_back(position);
         position += SIZE_RECORD;
     }
 
-    in_db.close();
+    //data rerange
+
+    fclose(file_db);
     this->indexed_ = true;
 
     return;
 }
 
-double db::query(string origin, string dest){
+double db::query(const char* origin, const char* dest){
 	//Do the query and return the average ArrDelay of flights from origin to dest.
 	//This method will be called multiple times.
     double total_arrdelay = 0.0;
     int number_record = 0;
     char buffer[SIZE_RECORD+1];
     record tmp;
-
-    fstream in_db(this->address_db_, fstream::in | fstream::binary);
+    size_t size_char = sizeof(char);
+    //fstream in_db(this->address_db_, fstream::in | fstream::binary);
+    FILE *file_db = fopen(this->address_db_.c_str(), "rb");
 
     //binary search using lower_bound for indexed_ data
     if(this->indexed_){
-        char target[SIZE_ORIGIN + SIZE_DEST + 1];
+        map_index target;
+        target.origin_dest[0] = origin[0];
+        target.origin_dest[1] = origin[1];
+        target.origin_dest[2] = origin[2];
+        target.origin_dest[3] = dest[0];
+        target.origin_dest[4] = dest[1];
+        target.origin_dest[5] = dest[2];
+        target.origin_dest[6] = '\0';
+        vector<int> &position = this->index_[target];
 
-        memcpy(target, origin.c_str(), SIZE_ORIGIN);
-        memcpy(target+SIZE_ORIGIN, dest.c_str(), SIZE_DEST);
-        target[SIZE_ORIGIN + SIZE_DEST] = '\0';
-        vector<int> &position = this->index_[string(target)];
-
-        for(int i=0;i<position.size();++i){
-            in_db.seekp(ios_base::beg + position[i]);
-            in_db.read(buffer, SIZE_RECORD);
+        int size_position = position.size();
+        for(int i=0;i<size_position;++i){
+            fseek(file_db, position[i], SEEK_SET);
+            fread(buffer, size_char, SIZE_RECORD, file_db);
             tmp.decode_from_db_only_arrdelay(buffer);
             total_arrdelay += (double)tmp.ArrDelay;
         }
-        number_record += position.size();
+        number_record += size_position;
 
     }else{
-        while( in_db.read(buffer, SIZE_RECORD) ){
-            tmp.decode_from_db(buffer);
-            if(strcmp(origin.c_str(), tmp.Origin) == 0 &&
-                strcmp(dest.c_str(), tmp.Dest) == 0){
+        while( fread(buffer, size_char, SIZE_RECORD, file_db) != 0 ){
+            tmp.decode_from_db_origin_dest(buffer);
+            if( strcmp(origin, tmp.Origin) == 0 &&
+                strcmp(dest, tmp.Dest) == 0){
+                tmp.decode_from_db_only_arrdelay(buffer);
                 total_arrdelay += (double)tmp.ArrDelay;
                 number_record++;
             }
         }
     }
 
-    in_db.close();
+    //in_db.close();
+    fclose(file_db);
 	return total_arrdelay / (double)number_record; //Remember to return your result.
 }
 

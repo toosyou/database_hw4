@@ -23,6 +23,16 @@ using namespace std;
 bool is_number(const string& input);
 bool is_number(const char* input);
 
+struct map_index{
+    char origin_dest[7];
+};
+
+struct cmp_mapindex{
+    bool operator()(const map_index &a, const map_index &b) const{
+        return strcmp(a.origin_dest, b.origin_dest) < 0;
+    }
+};
+
 struct record{
     int ArrDelay;
     char Origin[4];
@@ -97,6 +107,12 @@ struct record{
         memcpy(this->Dest, input+SIZE_ARRDELAY+SIZE_ORIGIN, SIZE_DEST);
         this->Dest[3] = '\0';
     }
+    void decode_from_db_origin_dest(char *input){
+        memcpy(this->Origin, input+SIZE_ARRDELAY, SIZE_ORIGIN);
+        this->Origin[3] = '\0';
+        memcpy(this->Dest, input+SIZE_ARRDELAY+SIZE_ORIGIN, SIZE_DEST);
+        this->Dest[3] = '\0';
+    }
     void decode_from_db_only_arrdelay(char *input){
         this->ArrDelay = *((int*)input);
     }
@@ -110,14 +126,14 @@ class db{
     string address_tmp_dir_;
     string address_db_;
     bool indexed_;
-    map<string, vector<int> > index_; //origin_dest to position
+    map<map_index, vector<int>, cmp_mapindex> index_; //origin_dest to position
 
 public:
     void init();
     void setTempFileDir(string dir);
     void import(string address_csv);
     void createIndex();
-    double query(string origin, string dest);
+    double query(const char* origin, const char* dest);
     void cleanup();
 };
 
