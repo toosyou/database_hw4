@@ -63,13 +63,13 @@ void db::import(string address_csv){
     FILE *file_csv = fopen( address_csv.c_str(), "r" );
     FILE *file_db = fopen( this->address_db_.c_str(), "ab" );
 
-    char buffer[1000] = {0};
+    char buffer[2000] = {0};
     record tmp_record;
 
     //first line
-    fgets(buffer, 1000, file_csv);
+    fgets(buffer, 2000, file_csv);
     //real data
-    while( fgets(buffer, 1000, file_csv) != NULL ){
+    while( fgets(buffer, 2000, file_csv) != NULL ){
         tmp_record.parse_from_buffer(buffer);
         tmp_record.encode_to_db_app(file_db);
     }
@@ -92,23 +92,26 @@ void db::createIndex(){
     this->index_.clear();
 
     int position = 0;
-    char buffer[SIZE_RECORD+1];
+    char buffer[SIZE_RECORD*50+1];
     size_t size_char = sizeof(char);
     record tmp_record;
     map_index tmp_index;
     FILE *file_db = fopen( this->address_db_.c_str(), "rb");
 
-    while( fread(buffer, size_char, SIZE_RECORD, file_db) != 0 ){
-        tmp_record.decode_from_db(buffer);
-        tmp_index.origin_dest[0] = tmp_record.Origin[0];
-        tmp_index.origin_dest[1] = tmp_record.Origin[1];
-        tmp_index.origin_dest[2] = tmp_record.Origin[2];
-        tmp_index.origin_dest[3] = tmp_record.Dest[0];
-        tmp_index.origin_dest[4] = tmp_record.Dest[1];
-        tmp_index.origin_dest[5] = tmp_record.Dest[2];
-        tmp_index.origin_dest[6] = '\0';
-        this->index_[tmp_index].push_back(position);
-        position += SIZE_RECORD;
+    int number_bytes = 0;
+    while( (number_bytes = fread(buffer, size_char, SIZE_RECORD*50, file_db)) != 0 ){
+        for(int i=0;i<number_bytes;i+=SIZE_RECORD){
+            tmp_record.decode_from_db(buffer+i);
+            tmp_index.origin_dest[0] = tmp_record.Origin[0];
+            tmp_index.origin_dest[1] = tmp_record.Origin[1];
+            tmp_index.origin_dest[2] = tmp_record.Origin[2];
+            tmp_index.origin_dest[3] = tmp_record.Dest[0];
+            tmp_index.origin_dest[4] = tmp_record.Dest[1];
+            tmp_index.origin_dest[5] = tmp_record.Dest[2];
+            tmp_index.origin_dest[6] = '\0';
+            this->index_[tmp_index].push_back(position);
+            position += SIZE_RECORD;
+        }
     }
 
     //data rerange
@@ -119,12 +122,16 @@ void db::createIndex(){
     return;
 }
 
+double db::query(string &origin, string &dest){
+    return this->query(origin.c_str(), dest.c_str());
+}
+
 double db::query(const char* origin, const char* dest){
 	//Do the query and return the average ArrDelay of flights from origin to dest.
 	//This method will be called multiple times.
     double total_arrdelay = 0.0;
     int number_record = 0;
-    char buffer[SIZE_RECORD+1];
+    char buffer[SIZE_RECORD*50+1];
     record tmp;
     size_t size_char = sizeof(char);
     //fstream in_db(this->address_db_, fstream::in | fstream::binary);
@@ -152,13 +159,16 @@ double db::query(const char* origin, const char* dest){
         number_record += size_position;
 
     }else{
-        while( fread(buffer, size_char, SIZE_RECORD, file_db) != 0 ){
-            tmp.decode_from_db_origin_dest(buffer);
-            if( strcmp(origin, tmp.Origin) == 0 &&
-                strcmp(dest, tmp.Dest) == 0){
-                tmp.decode_from_db_only_arrdelay(buffer);
-                total_arrdelay += (double)tmp.ArrDelay;
-                number_record++;
+        int number_bytes = 0;
+        while( (number_bytes = fread(buffer, size_char, SIZE_RECORD*50, file_db)) != 0 ){
+            for(int i=0;i<number_bytes;i+=SIZE_RECORD){
+                tmp.decode_from_db_origin_dest(buffer+i);
+                if( strcmp(origin, tmp.Origin) == 0 &&
+                    strcmp(dest, tmp.Dest) == 0){
+                    tmp.decode_from_db_only_arrdelay(buffer+i);
+                    total_arrdelay += (double)tmp.ArrDelay;
+                    number_record++;
+                }
             }
         }
     }

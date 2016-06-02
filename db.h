@@ -133,6 +133,7 @@ public:
     void setTempFileDir(string dir);
     void import(string address_csv);
     void createIndex();
+    double query(string &origin, string &dest);
     double query(const char* origin, const char* dest);
     void cleanup();
 };
