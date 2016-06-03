@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <map>
 
 #define ADDRESS_DB "airline.db"

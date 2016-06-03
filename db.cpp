@@ -47,7 +47,7 @@ void db::setTempFileDir(string dir){
 	//All the files that created by your program should be located under this directory.
     this->address_tmp_dir_ = dir;
     this->address_db_ = this->address_tmp_dir_ + string("/") + this->address_db_;
-    mkdir(this->address_tmp_dir_.c_str(), 755);
+    mkdir(this->address_tmp_dir_.c_str(), 0755);
 
     //remove old database
     remove(address_db_.c_str());
@@ -132,7 +132,7 @@ double db::query(const char* origin, const char* dest){
 	//This method will be called multiple times.
     double total_arrdelay = 0.0;
     int number_record = 0;
-    char buffer[SIZE_RECORD*50+1];
+    char buffer[SIZE_RECORD*500+1];
     record tmp;
     size_t size_char = sizeof(char);
     //fstream in_db(this->address_db_, fstream::in | fstream::binary);
@@ -161,7 +161,7 @@ double db::query(const char* origin, const char* dest){
 
     }else{
         int number_bytes = 0;
-        while( (number_bytes = fread(buffer, size_char, SIZE_RECORD*50, file_db)) != 0 ){
+        while( (number_bytes = fread(buffer, size_char, SIZE_RECORD*500, file_db)) != 0 ){
             for(int i=0;i<number_bytes;i+=SIZE_RECORD){
                 tmp.decode_from_db_origin_dest(buffer+i);
                 if( strcmp(origin, tmp.Origin) == 0 &&
