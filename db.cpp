@@ -93,16 +93,16 @@ void db::createIndex(){
     this->index_.clear();
 
     int position = 0;
-    char buffer[SIZE_RECORD*50+1];
+    char buffer[SIZE_RECORD*1024+1];
     size_t size_char = sizeof(char);
     record tmp_record;
     map_index tmp_index;
     FILE *file_db = fopen( this->address_db_.c_str(), "rb");
 
     int number_bytes = 0;
-    while( (number_bytes = fread(buffer, size_char, SIZE_RECORD*50, file_db)) != 0 ){
-        for(int i=0;i<number_bytes;i+=SIZE_RECORD){
-            tmp_record.decode_from_db(buffer+i);
+    while( (number_bytes = fread(buffer, SIZE_RECORD, 1024, file_db)) != 0 ){
+        for(int i=0;i<number_bytes;i++){
+            tmp_record.decode_from_db(buffer+i*SIZE_RECORD);
             tmp_index.origin_dest[0] = tmp_record.Origin[0];
             tmp_index.origin_dest[1] = tmp_record.Origin[1];
             tmp_index.origin_dest[2] = tmp_record.Origin[2];
@@ -132,7 +132,7 @@ double db::query(const char* origin, const char* dest){
 	//This method will be called multiple times.
     double total_arrdelay = 0.0;
     int number_record = 0;
-    char buffer[SIZE_RECORD*500+1];
+    char buffer[SIZE_RECORD*1024+1];
     record tmp;
     size_t size_char = sizeof(char);
     //fstream in_db(this->address_db_, fstream::in | fstream::binary);
@@ -161,12 +161,12 @@ double db::query(const char* origin, const char* dest){
 
     }else{
         int number_bytes = 0;
-        while( (number_bytes = fread(buffer, size_char, SIZE_RECORD*500, file_db)) != 0 ){
-            for(int i=0;i<number_bytes;i+=SIZE_RECORD){
-                tmp.decode_from_db_origin_dest(buffer+i);
+        while( (number_bytes = fread(buffer, SIZE_RECORD, 1024, file_db)) != 0 ){
+            for(int i=0;i<number_bytes;i++){
+                tmp.decode_from_db_origin_dest(buffer+i*SIZE_RECORD);
                 if( strcmp(origin, tmp.Origin) == 0 &&
                     strcmp(dest, tmp.Dest) == 0){
-                    tmp.decode_from_db_only_arrdelay(buffer+i);
+                    tmp.decode_from_db_only_arrdelay(buffer+i*SIZE_RECORD);
                     total_arrdelay += (double)tmp.ArrDelay;
                     number_record++;
                 }
