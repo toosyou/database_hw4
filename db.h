@@ -1,3 +1,6 @@
+#pragma GCC push_options
+#pragma GCC optimize (2)
+
 #ifndef DB_H
 #define DB_H
 

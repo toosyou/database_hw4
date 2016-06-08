@@ -1,3 +1,6 @@
+#pragma GCC push_options
+#pragma GCC optimize (2)
+
 #include "db.h"
 
 bool is_number(const string& input){

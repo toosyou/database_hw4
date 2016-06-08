@@ -1,3 +1,4 @@
+#pragma GCC optimize (2)
 #include <time.h>
 #include "db.h"
 
