@@ -45,10 +45,10 @@ int main(int argc, char* argv[]){
 
 	//End timing
 	clock_t tEnd = clock();
-    printf("Time taken for importing: %.2fs\n", (double)(tQueryWithoutIndex - tImport) / CLOCKS_PER_SEC);
-    printf("Time taken for queries without indexing: %.2fs\n", (double)(tIndex - tQueryWithoutIndex) / CLOCKS_PER_SEC);
-	printf("Time taken for creating index: %.2fs\n", (double)(tQuery - tIndex) / CLOCKS_PER_SEC);
-	printf("Time taken for making queries: %.2fs\n", (double)(tEnd - tQuery) / CLOCKS_PER_SEC);
+    printf("Time taken for importing: %.5fs\n", (double)(tQueryWithoutIndex - tImport) / CLOCKS_PER_SEC);
+    printf("Time taken for queries without indexing: %.5fs\n", (double)(tIndex - tQueryWithoutIndex) / CLOCKS_PER_SEC);
+	printf("Time taken for creating index: %.5fs\n", (double)(tQuery - tIndex) / CLOCKS_PER_SEC);
+	printf("Time taken for making queries: %.5fs\n", (double)(tEnd - tQuery) / CLOCKS_PER_SEC);
 
 	//Cleanup db object
 	mydb.cleanup();

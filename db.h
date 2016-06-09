@@ -1,5 +1,6 @@
 #pragma GCC push_options
 #pragma GCC optimize (2)
+#define NDEBUG
 
 #ifndef DB_H
 #define DB_H
@@ -15,6 +16,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <map>
+#include <cstdio>
 
 #define ADDRESS_DB "airline.db"
 #define SIZE_ARRDELAY 4
@@ -24,11 +26,16 @@
 
 using namespace std;
 
-bool is_number(const string& input);
 bool is_number(const char* input);
+bool ODcmp(const char* origin_a, const char *origin_b, const char *dest_a, const char *dest_b);
 
 struct map_index{
     char origin_dest[7];
+    void decode_from_db(char *input){
+        memcpy(this->origin_dest, input+SIZE_ARRDELAY, SIZE_ORIGIN+SIZE_DEST);
+        this->origin_dest[6] = '\0';
+        return;
+    }
 };
 
 struct cmp_mapindex{
@@ -55,35 +62,14 @@ struct record{
         //17 : Origin
         tok = strtok(NULL, ",");
         tok = strtok(NULL, ",");
-        strcpy( this->Origin, tok);
+        memcpy( this->Origin, tok, SIZE_ORIGIN);
 
         //18 : Dest
         tok = strtok(NULL, ",");
-        strcpy( this->Dest, tok);
+        memcpy( this->Dest, tok, SIZE_DEST);
 
-        return 0;
-    }
-    int parse_from_buffer(string &input){
-        size_t find_pos = -1;
-        for(int i=0;i<14;++i)
-            find_pos = input.find(',', find_pos+1);
-
-        //15 : ArrDelay
-        string str_arrdelay = input.substr(find_pos+1, input.find(',', find_pos+1)-find_pos-1);
-        if(is_number(str_arrdelay) == false)//NA, null
-            return -1;
-        this->ArrDelay = atoi(str_arrdelay.c_str());
-
-        //17 : Origin
-        find_pos = input.find(',', find_pos+1);
-        find_pos = input.find(',', find_pos+1);
-        string str_origin = input.substr(find_pos+1, input.find(',', find_pos+1)-find_pos-1);
-        strcpy( this->Origin, str_origin.c_str());
-
-        //18 : Dest
-        find_pos = input.find(',', find_pos+1);
-        string str_dest = input.substr(find_pos+1, input.find(',', find_pos+1)-find_pos-1);
-        strcpy( this->Dest, str_dest.c_str() );
+        this->Origin[3] = '\0';
+        this->Dest[3] = '\0';
 
         return 0;
     }
@@ -95,20 +81,11 @@ struct record{
         fwrite( this->Dest, size_char, SIZE_DEST, file_db);
         return;
     }
-    void encode_to_db_app(fstream &out_db){
-        //encode to file
-
-        out_db.write( (char*)&(this->ArrDelay), SIZE_ARRDELAY );
-        out_db.write( this->Origin, SIZE_ORIGIN );
-        out_db.write( this->Dest, SIZE_DEST );
-
-        return;
-    }
     void decode_from_db(char *input){
         this->ArrDelay = *((int*)input);
         memcpy(this->Origin, input+SIZE_ARRDELAY, SIZE_ORIGIN);
-        this->Origin[3] = '\0';
         memcpy(this->Dest, input+SIZE_ARRDELAY+SIZE_ORIGIN, SIZE_DEST);
+        this->Origin[3] = '\0';
         this->Dest[3] = '\0';
     }
     void decode_from_db_origin_dest(char *input){
@@ -123,7 +100,6 @@ struct record{
 };
 
 bool cmp_record(const record &a,const record &b);
-bool cmp_charstring(const char *a, const char *b);
 
 class db{
 

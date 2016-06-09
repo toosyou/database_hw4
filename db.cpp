@@ -1,18 +1,8 @@
 #pragma GCC push_options
 #pragma GCC optimize (2)
+#define NDEBUG
 
 #include "db.h"
-
-bool is_number(const string& input){
-    if(input.size() == 0)
-        return false;
-
-    for(int i=1;i<input.size();++i){
-        if( isdigit(input[i]) == false )
-            return false;
-    }
-    return true;
-}
 
 bool is_number(const char* input){
     int length_input = strlen(input);
@@ -25,6 +15,17 @@ bool is_number(const char* input){
     return true;
 }
 
+bool ODcmp(const char* origin_a, const char *origin_b, const char *dest_a, const char *dest_b){
+    if( origin_a[0] == origin_b[0] &&
+        dest_a[0] == dest_b[0] &&
+        origin_a[1] == origin_b[1] &&
+        dest_a[1] == dest_b[1] &&
+        origin_a[2] == origin_b[2] &&
+        dest_a[2] == dest_b[2] )
+        return true;
+    return false;
+}
+
 bool cmp_record(record a, record b){ // a <= b
     int first_compare = strcmp(a.Origin, b.Origin);
     if( first_compare == 0){ // equal
@@ -34,9 +35,6 @@ bool cmp_record(record a, record b){ // a <= b
     }
 }
 
-bool cmp_charstring(const char *a, const char *b){
-    return strcmp(a, b) < 0;
-}
 
 void db::init(){
 	//Do your db initialization.
@@ -97,22 +95,14 @@ void db::createIndex(){
 
     int position = 0;
     char buffer[SIZE_RECORD*1024+1];
-    size_t size_char = sizeof(char);
-    record tmp_record;
+    const size_t size_char = sizeof(char);
     map_index tmp_index;
     FILE *file_db = fopen( this->address_db_.c_str(), "rb");
 
-    int number_bytes = 0;
-    while( (number_bytes = fread(buffer, SIZE_RECORD, 1024, file_db)) != 0 ){
-        for(int i=0;i<number_bytes;i++){
-            tmp_record.decode_from_db(buffer+i*SIZE_RECORD);
-            tmp_index.origin_dest[0] = tmp_record.Origin[0];
-            tmp_index.origin_dest[1] = tmp_record.Origin[1];
-            tmp_index.origin_dest[2] = tmp_record.Origin[2];
-            tmp_index.origin_dest[3] = tmp_record.Dest[0];
-            tmp_index.origin_dest[4] = tmp_record.Dest[1];
-            tmp_index.origin_dest[5] = tmp_record.Dest[2];
-            tmp_index.origin_dest[6] = '\0';
+    int number_record = 0;
+    while( (number_record = fread(buffer, SIZE_RECORD, 1024, file_db)) != 0 ){
+        for(int i=0;i<number_record;i++){
+            tmp_index.decode_from_db(buffer+i*SIZE_RECORD);
             this->index_[tmp_index].push_back(position);
             position += SIZE_RECORD;
         }
@@ -133,11 +123,11 @@ double db::query(string &origin, string &dest){
 double db::query(const char* origin, const char* dest){
 	//Do the query and return the average ArrDelay of flights from origin to dest.
 	//This method will be called multiple times.
-    double total_arrdelay = 0.0;
+    int total_arrdelay = 0.0;
     int number_record = 0;
     char buffer[SIZE_RECORD*1024+1];
     record tmp;
-    size_t size_char = sizeof(char);
+    const size_t size_char = sizeof(char);
     //fstream in_db(this->address_db_, fstream::in | fstream::binary);
     FILE *file_db = fopen(this->address_db_.c_str(), "rb");
 
@@ -150,27 +140,24 @@ double db::query(const char* origin, const char* dest){
         target.origin_dest[3] = dest[0];
         target.origin_dest[4] = dest[1];
         target.origin_dest[5] = dest[2];
-        target.origin_dest[6] = '\0';
         vector<int> &position = this->index_[target];
 
-        int size_position = position.size();
-        for(int i=0;i<size_position;++i){
+        number_record = position.size();
+        for(int i=0;i<number_record;++i){
             fseek(file_db, position[i], SEEK_SET);
-            fread(buffer, size_char, SIZE_RECORD, file_db);
-            tmp.decode_from_db_only_arrdelay(buffer);
-            total_arrdelay += (double)tmp.ArrDelay;
+            fread(buffer, SIZE_ARRDELAY, 1, file_db);
+            total_arrdelay += *(int*)buffer;
         }
-        number_record += size_position;
 
     }else{
-        int number_bytes = 0;
-        while( (number_bytes = fread(buffer, SIZE_RECORD, 1024, file_db)) != 0 ){
-            for(int i=0;i<number_bytes;i++){
-                tmp.decode_from_db_origin_dest(buffer+i*SIZE_RECORD);
-                if( strcmp(origin, tmp.Origin) == 0 &&
-                    strcmp(dest, tmp.Dest) == 0){
-                    tmp.decode_from_db_only_arrdelay(buffer+i*SIZE_RECORD);
-                    total_arrdelay += (double)tmp.ArrDelay;
+        int number_record_read = 0;
+        while( (number_record_read = fread(buffer, SIZE_RECORD, 1024, file_db)) != 0 ){
+            for(int i=0;i<number_record_read;i++){
+                char *position = buffer+i*SIZE_RECORD;
+
+                if( memcmp(origin, position+SIZE_ARRDELAY, SIZE_ORIGIN) == 0 &&
+                    memcmp(dest, position+SIZE_ARRDELAY+SIZE_ORIGIN, SIZE_DEST) == 0){
+                    total_arrdelay += *(int*)position;
                     number_record++;
                 }
             }
@@ -179,7 +166,7 @@ double db::query(const char* origin, const char* dest){
 
     //in_db.close();
     fclose(file_db);
-	return total_arrdelay / (double)number_record; //Remember to return your result.
+	return (double)total_arrdelay / (double)number_record; //Remember to return your result.
 }
 
 void db::cleanup(){
