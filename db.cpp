@@ -81,24 +81,23 @@ void db::createIndex(){
         return;
     this->index_.clear();
 
-    int position = 0;
-    char buffer[SIZE_RECORD*1024+1];
-    const size_t size_char = sizeof(char);
     map_index tmp_index;
-    FILE *file_db = fopen( this->address_db_.c_str(), "rb");
 
-    int number_record = 0;
-    while( (number_record = fread(buffer, SIZE_RECORD, 1024, file_db)) != 0 ){
-        for(int i=0;i<number_record;i++){
-            tmp_index.decode_from_db(buffer+i*SIZE_RECORD);
-            this->index_[tmp_index].push_back(position);
-            position += SIZE_RECORD;
-        }
+    char *db_mmap ;
+    int fd_db = open(this->address_db_.c_str(), O_RDONLY);
+    struct stat sb_db;
+    fstat(fd_db, &sb_db);
+    db_mmap = (char*)mmap(NULL, sb_db.st_size, PROT_READ, MAP_SHARED, fd_db, 0);
+
+    int position = 0;
+    for(int i=0;i<sb_db.st_size;i+=SIZE_RECORD){
+        tmp_index.decode_from_db(db_mmap+i);
+        this->index_[tmp_index].push_back(position);
+        position += SIZE_RECORD;
     }
 
-    //data rerange
-
-    fclose(file_db);
+    munmap(db_mmap, sb_db.st_size);
+    close(fd_db);
     this->indexed_ = true;
 
     return;
