@@ -15,17 +15,6 @@ bool is_number(const char* input){
     return true;
 }
 
-bool ODcmp(const char* origin_a, const char *origin_b, const char *dest_a, const char *dest_b){
-    if( origin_a[0] == origin_b[0] &&
-        dest_a[0] == dest_b[0] &&
-        origin_a[1] == origin_b[1] &&
-        dest_a[1] == dest_b[1] &&
-        origin_a[2] == origin_b[2] &&
-        dest_a[2] == dest_b[2] )
-        return true;
-    return false;
-}
-
 bool cmp_record(record a, record b){ // a <= b
     int first_compare = strcmp(a.Origin, b.Origin);
     if( first_compare == 0){ // equal
@@ -34,7 +23,6 @@ bool cmp_record(record a, record b){ // a <= b
         return first_compare < 0 ? true : false;
     }
 }
-
 
 void db::init(){
 	//Do your db initialization.
@@ -125,13 +113,13 @@ double db::query(const char* origin, const char* dest){
 	//This method will be called multiple times.
     int total_arrdelay = 0.0;
     int number_record = 0;
-    char buffer[SIZE_RECORD*1024+1];
-    record tmp;
-    const size_t size_char = sizeof(char);
-    //fstream in_db(this->address_db_, fstream::in | fstream::binary);
-    FILE *file_db = fopen(this->address_db_.c_str(), "rb");
 
-    //binary search using lower_bound for indexed_ data
+    char *db_mmap ;
+    int fd_db = open(this->address_db_.c_str(), O_RDONLY);
+    struct stat sb_db;
+    fstat(fd_db, &sb_db);
+    db_mmap = (char*)mmap(NULL, sb_db.st_size, PROT_READ, MAP_SHARED, fd_db, 0);
+
     if(this->indexed_){
         map_index target;
         target.origin_dest[0] = origin[0];
@@ -140,32 +128,28 @@ double db::query(const char* origin, const char* dest){
         target.origin_dest[3] = dest[0];
         target.origin_dest[4] = dest[1];
         target.origin_dest[5] = dest[2];
+        target.origin_dest[6] = '\0';
         vector<int> &position = this->index_[target];
 
         number_record = position.size();
         for(int i=0;i<number_record;++i){
-            fseek(file_db, position[i], SEEK_SET);
-            fread(buffer, SIZE_ARRDELAY, 1, file_db);
-            total_arrdelay += *(int*)buffer;
+            total_arrdelay += *(int*)(db_mmap+position[i]);
         }
 
     }else{
-        int number_record_read = 0;
-        while( (number_record_read = fread(buffer, SIZE_RECORD, 1024, file_db)) != 0 ){
-            for(int i=0;i<number_record_read;i++){
-                char *position = buffer+i*SIZE_RECORD;
 
-                if( memcmp(origin, position+SIZE_ARRDELAY, SIZE_ORIGIN) == 0 &&
-                    memcmp(dest, position+SIZE_ARRDELAY+SIZE_ORIGIN, SIZE_DEST) == 0){
-                    total_arrdelay += *(int*)position;
-                    number_record++;
-                }
+        for(int i=0;i<sb_db.st_size;i+=SIZE_RECORD){
+            if( memcmp(origin, db_mmap+i+SIZE_ARRDELAY, SIZE_ORIGIN ) == 0 &&
+                memcmp(dest, db_mmap+i+SIZE_ARRDELAY+SIZE_ORIGIN, SIZE_DEST) == 0){
+                total_arrdelay += *(int*)(db_mmap+i);
+                number_record++;
             }
         }
+
     }
 
-    //in_db.close();
-    fclose(file_db);
+    munmap(db_mmap, sb_db.st_size);
+    close(fd_db);
 	return (double)total_arrdelay / (double)number_record; //Remember to return your result.
 }
 
