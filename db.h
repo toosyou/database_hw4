@@ -28,6 +28,7 @@
 
 using namespace std;
 
+bool is_place(const char* input);
 bool is_number(const char* input);
 bool ODcmp(const char* origin_a, const char *origin_b, const char *dest_a, const char *dest_b);
 
@@ -38,6 +39,11 @@ struct map_index{
         this->origin_dest[6] = '\0';
         return;
     }
+};
+
+struct block_position{
+    int offset;
+    int size;
 };
 
 struct cmp_mapindex{
@@ -64,10 +70,14 @@ struct record{
         //17 : Origin
         tok = strtok(NULL, ",");
         tok = strtok(NULL, ",");
+        if( is_place(tok) == false )
+            return -1;
         memcpy( this->Origin, tok, SIZE_ORIGIN);
 
         //18 : Dest
         tok = strtok(NULL, ",");
+        if( is_place(tok) == false )
+            return -1;
         memcpy( this->Dest, tok, SIZE_DEST);
 
         this->Origin[3] = '\0';
@@ -108,7 +118,8 @@ class db{
     string address_tmp_dir_;
     string address_db_;
     bool indexed_;
-    map<map_index, vector<int>, cmp_mapindex> index_; //origin_dest to position
+    map<map_index, vector<int>, cmp_mapindex> pre_index_; //origin_dest to position
+    map<map_index, block_position, cmp_mapindex> index_;
 
 public:
     void init();
