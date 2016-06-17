@@ -58,30 +58,39 @@ struct record{
     char Dest[4];
 
     int parse_from_buffer(char* input){
-        char* tok = strtok(input, ",");
-        for(int i=0;i<14;++i){
-            tok = strtok(NULL, ",");
+        int index_column = 0;
+        int length_column = 0;
+        const int length_input = strlen(input);
+        char column_buffer[200] = {0};
+
+        for(int i=0;i<length_input;++i){
+            if(input[i] == ','){
+                column_buffer[length_column++]='\0';
+
+                if(index_column == 14){
+                    if( is_number(column_buffer) == false)
+                        return -1;
+                    this->ArrDelay = atoi(column_buffer);
+                }
+                else if(index_column == 16){
+                    if( is_place(column_buffer) == false)
+                        return -1;
+                    strcpy(this->Origin, column_buffer);
+                }
+                else if(index_column == 17){
+                    if( is_place(column_buffer) == false)
+                        return -1;
+                    strcpy(this->Dest, column_buffer);
+                }
+                else if(index_column > 17)
+                    break;
+
+                length_column = 0;
+                index_column++;
+                continue;
+            }
+            column_buffer[length_column++] = input[i];
         }
-        //15 : ArrDelay
-        if( is_number(tok) == false )
-            return -1;
-        this->ArrDelay = atoi(tok);
-
-        //17 : Origin
-        tok = strtok(NULL, ",");
-        tok = strtok(NULL, ",");
-        if( is_place(tok) == false )
-            return -1;
-        memcpy( this->Origin, tok, SIZE_ORIGIN);
-
-        //18 : Dest
-        tok = strtok(NULL, ",");
-        if( is_place(tok) == false )
-            return -1;
-        memcpy( this->Dest, tok, SIZE_DEST);
-
-        this->Origin[3] = '\0';
-        this->Dest[3] = '\0';
 
         return 0;
     }
@@ -129,6 +138,8 @@ public:
     double query(string &origin, string &dest);
     double query(const char* origin, const char* dest);
     void cleanup();
+
+    void all();
 };
 
 #endif

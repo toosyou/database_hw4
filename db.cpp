@@ -85,6 +85,15 @@ void db::import(string address_csv){
     return;
 }
 
+void db::all(){
+    map<map_index, block_position, cmp_mapindex>::iterator it;
+    for(it = this->index_.begin(); it != this->index_.end(); ++it){
+        cout << this->query( it->first.origin_dest, it->first.origin_dest+3 ) <<endl;
+    }
+
+    return;
+}
+
 void db::createIndex(){
 	//Create index.
 
@@ -190,6 +199,7 @@ double db::query(const char* origin, const char* dest){
 
     munmap(db_mmap, sb_db.st_size);
     close(fd_db);
+
 	return (double)total_arrdelay / (double)number_record; //Remember to return your result.
 }
 
