@@ -196,6 +196,7 @@ double db::query(const char* origin, const char* dest){
 void db::cleanup(){
 	//Release memory, close files and anything you should do to clean up your db class.
     this->index_.clear();
+    this->pre_index_.clear();
 
     return;
 }

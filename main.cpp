@@ -22,7 +22,7 @@ int main(int argc, char* argv[]){
 
     //query without indexing
     clock_t tQueryWithoutIndex = clock();
-    double result1_noindex = mydb.query("IAH", "JFK");
+    double result1_noindex = mydb.query("ATL", "MCI");
     double result2_noindex = mydb.query("IAH", "LAX");
     double result3_noindex = mydb.query("JFK", "LAX");
     double result4_noindex = mydb.query("JFK", "IAH");
@@ -37,7 +37,7 @@ int main(int argc, char* argv[]){
 	//We will do different queries in the contest.
 	//Start timing
 	clock_t tQuery = clock();
-	double result1 = mydb.query("IAH", "JFK");
+	double result1 = mydb.query("ATL", "MCI");
 	double result2 = mydb.query("IAH", "LAX");
 	double result3 = mydb.query("JFK", "LAX");
 	double result4 = mydb.query("JFK", "IAH");
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]){
 	mydb.cleanup();
 
     //output result
-    cout << "IAH\tJFK" <<endl;
+    cout << "ATL\tMCI" <<endl;
     cout << "with no index: \t" << result1_noindex <<endl;
     cout << "with index: \t" << result1 <<endl;
 
